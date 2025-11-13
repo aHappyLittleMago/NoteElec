@@ -20,6 +20,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "electron"],
+  // 模块解析添加engine文件
+  "include": ["src", "electron", "engine"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
