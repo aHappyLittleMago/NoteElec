@@ -1,9 +1,10 @@
 // 导入Electron核心模块：app（控制应用生命周期）、BrowserWindow（创建窗口）
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 // 导入Node.js模块：处理模块加载和路径
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { NetworkServer } from '../engine/Network/server'
 
 // 在ES模块中模拟CommonJS的require功能（解决部分模块兼容问题）
 // @ts-expect-error：忽略TypeScript对类型的检查（因为createRequire在TS中类型定义特殊）
@@ -31,9 +32,13 @@ export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 // 公共资源目录路径：开发环境用public文件夹，生产环境用渲染进程打包目录
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL 
-  ? path.join(process.env.APP_ROOT, 'public') 
+process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
+  ? path.join(process.env.APP_ROOT, 'public')
   : RENDERER_DIST
+
+
+// 全局维护server实例（避免被垃圾回收）
+let serverInstance: NetworkServer | null = null;
 
 // 声明窗口实例变量（全局维护，避免被垃圾回收）
 let win: BrowserWindow | null
@@ -65,6 +70,32 @@ function createWindow() {
   }
 }
 
+// 处理“启动/关闭server”的核心逻辑
+const handleServerToggle = (enable: boolean) => {
+  try {
+    if (enable) {
+      // 启动服务：仅当实例不存在时创建
+      if (!serverInstance) {
+        serverInstance = new NetworkServer(); // 初始化服务实例
+        serverInstance.start(); // 启动服务
+        win?.webContents.send('server:status', { running: true }); // 通知前端
+      }
+    } else {
+      // 关闭服务：仅当实例存在时销毁
+      if (serverInstance) {
+        serverInstance.stop(); // 停止服务
+        serverInstance = null; // 清空实例
+        win?.webContents.send('server:status', { running: false }); // 通知前端
+      }
+    }
+  } catch (err) {
+    // 捕获启动/关闭过程中的错误，反馈给前端
+    const errorMsg = err instanceof Error ? err.message : '服务操作失败';
+    win?.webContents.send('server:status', { running: false, error: errorMsg });
+  }
+};
+
+
 // 监听所有窗口关闭事件：
 // 在非macOS系统（如Windows、Linux），所有窗口关闭后退出应用
 app.on('window-all-closed', () => {
@@ -83,7 +114,13 @@ app.on('activate', () => {
 })
 
 // 当应用准备就绪后，创建主窗口
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  // 监听前端发送的“切换server状态”指令
+  ipcMain.on('server:toggle', (_, enable: boolean) => {
+    handleServerToggle(enable);
+  });
+  createWindow()
+})
 
 
 

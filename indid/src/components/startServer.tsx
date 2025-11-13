@@ -1,38 +1,53 @@
-import { NetworkServer } from "../../engine/Network/server";
-import { useState, useCallback, useEffect, useRef } from "react";
-import { Button } from "@headlessui/react";
+// ServerControl.tsx（前端UI组件）
+import { useState, useEffect } from 'react';
+//import { Button } from '@headlessui/react';
+import { Popover, PopoverButton} from '@headlessui/react'
+
+// 声明window上的electronAPI类型（TypeScript类型提示）
+declare global {
+  interface Window {
+    electronAPI: {
+      toggleServer: (enable: boolean) => void;
+      onServerStatus: (callback: (status: { running: boolean; error?: string }) => void) => void;
+    };
+  }
+}
 
 const ServerModule = () => {
-  const [isRunning, setIsRunning] = useState(false);
+  const [isRunning, setIsRunning] = useState(false); // UI显示的服务状态
+  const [error, setError] = useState(''); // 服务启动失败的错误信息
 
-  // 明确指定 ref 类型为 NetworkServer | null，初始值为 null
-  const ServerEntity = useRef<NetworkServer | null>(null);
-
-  const handleClick = useCallback(() => {
-    setIsRunning(pre => !pre);
-  }, []);
-
+  // 监听主进程返回的服务状态（初始化时注册）
   useEffect(() => {
-    // 修正条件：判断 isRunning 为 true 且 current 未初始化时才创建实例
-    if (!isRunning || ServerEntity.current) {
+    if (window.electronAPI?.onServerStatus === undefined) {
       return;
     }
-    // 初始化服务实例
-    const server = new NetworkServer();
-    ServerEntity.current = server;
-
-    // 组件卸载或 isRunning 为 false 时关闭服务
-    return () => {
-      if (ServerEntity.current) {
-        ServerEntity.current = null;
-      }
+    const handleStatus = (status: { running: boolean; error?: string }) => {
+      setIsRunning(status.running);
+      setError(status.error || '');
     };
-  }, [isRunning]);
+    window.electronAPI.onServerStatus(handleStatus);
+  }, [window.electronAPI]);
+
+  // 点击按钮：发送启动/关闭指令
+  const handleClick = () => {
+    const newState = !isRunning;
+    window.electronAPI?.toggleServer(newState); // 发送指令给主进程
+  };
 
   return (
-    <Button onClick={handleClick}>
-      {isRunning ? '关闭服务' : '启用服务'}
-    </Button>
+    <div>
+      <Popover className="relative">
+        <PopoverButton onClick={handleClick}>
+          {isRunning ? '关闭服务' : '启动服务'}
+        </PopoverButton>
+      </Popover>
+      <></>
+      <div>
+      {`服务实例状态：${isRunning}`}
+      </div>
+      {error && <p style={{ color: 'red' }}>错误：{error}</p>}
+    </div>
   );
 };
 

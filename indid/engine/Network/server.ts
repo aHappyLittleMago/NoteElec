@@ -26,7 +26,7 @@ class NetworkServer {
   // 启动服务器
   start(): void {
     this.io.listen(this.port);
-    console.log(`服务器启动，监听端口 ${this.port}`);
+    console.log(`server on,  port listening...  ${this.port}`);
   }
 
   // 设置连接处理逻辑
@@ -71,7 +71,7 @@ class NetworkServer {
   // 停止服务器
   stop(): void {
     this.io.close();
-    console.log("服务器已停止");
+    console.log("server off");
   }
 }
 

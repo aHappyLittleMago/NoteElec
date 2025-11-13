@@ -5,7 +5,7 @@ import { ServerModule } from './components/startServer'
 function App() {
   return (
     <>
-      {/*<ServerModule/>*/}
+      <ServerModule/>
       <Demo/>
     </>
   )

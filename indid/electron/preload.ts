@@ -1,40 +1,55 @@
-// 导入Electron的IPC渲染器模块和上下文桥接模块
-// ipcRenderer：用于渲染进程与主进程之间的通信
-// contextBridge：用于安全地向渲染进程暴露API（避免直接暴露Node.js模块带来的安全风险）
 import { ipcRenderer, contextBridge } from 'electron'
 
 // --------- 向渲染进程暴露部分API ---------
 // 通过contextBridge将指定API暴露到渲染进程的window对象中（主世界）
-// 这样渲染进程可以通过window.ipcRenderer访问这些方法，而无需直接操作ipcRenderer
+// 渲染进程（内置浏览器环境）通过window.ipcRenderer访问方法，避免直接操作ipcRender实例
 contextBridge.exposeInMainWorld('ipcRenderer', {
-  // 监听主进程发送的消息（对应ipcRenderer.on）
-  // Parameters<typeof ipcRenderer.on>：通过TypeScript获取ipcRenderer.on的参数类型，确保类型一致
+
+  // 监听主进程（Node端）消息
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args; // 解构出消息通道和监听函数
     // 调用ipcRenderer的on方法，转发参数
     return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args));
   },
 
-  // 移除对主进程消息的监听（对应ipcRenderer.off）
+  // 移除对主进程消息的监听
   off(...args: Parameters<typeof ipcRenderer.off>) {
     const [channel, ...omit] = args; // 解构出消息通道和其他参数
     return ipcRenderer.off(channel, ...omit);
   },
 
-  // 向主进程发送消息（对应ipcRenderer.send）
+  // 向主进程发送消息
   send(...args: Parameters<typeof ipcRenderer.send>) {
     const [channel, ...omit] = args; // 解构出消息通道和消息内容
     return ipcRenderer.send(channel, ...omit);
   },
 
-  // 向主进程发送消息并等待响应（异步，对应ipcRenderer.invoke）
+  // 向主进程发送消息并等待响应
   invoke(...args: Parameters<typeof ipcRenderer.invoke>) {
     const [channel, ...omit] = args; // 解构出消息通道和消息内容
     return ipcRenderer.invoke(channel, ...omit);
   },
+})
 
-  // 你可以根据需要在这里暴露其他必要的API
+contextBridge.exposeInMainWorld('electronAPI', {
+    // 自定义API暴露
   // ...
+  // 切换服务程序状态（开启/关闭）
+  toggleServer: (enable: boolean) => ipcRenderer.send('server:toggle', enable),
+
+  // 监听服务器状态（待传：事件回调）
+  onServerStatus: (callback: (status: { running: boolean; error?: string }) => void) => {
+    // 定义监听回调（接收事件名，参数）
+    const listener = (_: Electron.IpcRendererEvent, status: { running: boolean; error?: string }) => {
+      callback(status);
+    };
+    // 注册监听
+    ipcRenderer.on('server:status', listener);
+    // 返卸载监听
+    return () => {
+      ipcRenderer.off('server:status', listener);
+    };
+  }
 })
 
 /*import { ipcRenderer, contextBridge } from 'electron'
