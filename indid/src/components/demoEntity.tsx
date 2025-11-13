@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react'; // 引入React钩子
 import { Input } from "../../engine/io";
 import { GameLoop } from "../../engine/loop";
 import { Renderer } from "../../engine/render";
+import { ServerModule } from './startServer';
 
 const Demo = () => {
     // 创建实例容器
@@ -81,12 +82,14 @@ const Demo = () => {
 
   // 返回Canvas元素
   return (
+    <>
     <canvas 
       id="gameCanvas" 
       width="800" 
       height="600" 
       style={{ border: '1px solid #000' }}
-    />
+    /></>
+    
   );
 };
 
