@@ -1,7 +1,7 @@
 // network/NetworkClient.ts
 import io, { Socket } from "socket.io-client";
 import type {NetworkClientEvents} from "./interface.ts";
-import type { PalyerStateType } from "../Player/player.ts";
+import type { PlayerStateType } from "../../core/entities/Player/player.ts";
 
 class NetworkClient {
   // 私有成员
@@ -34,7 +34,7 @@ class NetworkClient {
     });
 
     // 新玩家加入：
-    this.socket.on("playerJoined", (player: PalyerStateType) => {
+    this.socket.on("playerJoined", (player: PlayerStateType) => {
       this.events.playerJoined?.call(this, player);
     });
 
@@ -44,7 +44,7 @@ class NetworkClient {
     });
 
     // 全局状态更新（服务器广播）
-    this.socket.on("stateUpdate", (states: PalyerStateType[]) => {
+    this.socket.on("stateUpdate", (states: PlayerStateType[]) => {
       this.events.stateUpdate?.call(this, states);
     });
 
@@ -63,11 +63,12 @@ class NetworkClient {
   }
 
   // 发送本地玩家状态到服务器
-  sendPlayerState(state: Omit<PalyerStateType, "id">): void {
+  sendPlayerState(state: PlayerStateType): void {
     if (!this.socket || !this.socket.connected) {
       this.events.error?.call(this, "未连接到服务器");
       return;
     }
+    //console.log("客户端主动更新", state)
     this.socket.emit("updateState", state); // 注册更新状态事件
   }
 
@@ -80,6 +81,11 @@ class NetworkClient {
   disconnect(): void {
     this.socket?.disconnect();
     this.socket = null; // 清除socket实例
+  }
+
+
+  setServerUrl(newUrl: string){
+    this.serverUrl = newUrl;
   }
 }
 

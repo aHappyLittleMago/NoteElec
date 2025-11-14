@@ -3,12 +3,12 @@
  * 方向键控制矩形移动
  */
 import { useEffect, useRef } from 'react'; // 引入React钩子
-import { Input } from "../../engine/Base/io";
-import { GameLoop } from "../../engine/Base/loop";
-import { Renderer } from "../../engine/Base/render";
+import { Input } from "../../engine/core/io/io";
+import { GameLoop } from "../../engine/core/loop/loop";
+import { Renderer } from "../../engine/core/render/render";
 // import { ServerModule } from './startServer';
 
-const Demo = () => {
+const Demo = (props:{client: any}) => {
     // 创建实例容器
   const gameLoopRef = useRef<GameLoop | null>(null); // 游戏循环
   const rendererRef = useRef<Renderer | null>(null); // 渲染函数
@@ -21,6 +21,7 @@ const Demo = () => {
     speed: 200,
     color: '#4a90e2'
   });
+  const {client} = props;
 
   // 用useEffect在组件挂载后初始化（确保Canvas已存在）
   useEffect(() => {
@@ -59,6 +60,9 @@ const Demo = () => {
       // 边界限制
       player.x = Math.max(0, Math.min(canvasWidth - player.width, player.x));
       player.y = Math.max(0, Math.min(canvasHeight - player.height, player.y));
+
+      client.current?.sendPlayerState({id:client.current.id, ...player});
+
     });
 
     // 5. 注册渲染逻辑

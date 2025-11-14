@@ -4,7 +4,8 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { NetworkServer } from '../engine/Network/server'
+import { NetworkServer } from '../engine/expends/server/server'
+import { handleServerToggle, handleServerInfoReq} from './functions/server/logic'
 
 // 在ES模块中模拟CommonJS的require功能（解决部分模块兼容问题）
 // @ts-expect-error：忽略TypeScript对类型的检查（因为createRequire在TS中类型定义特殊）
@@ -70,31 +71,6 @@ function createWindow() {
   }
 }
 
-// 处理“启动/关闭server”的核心逻辑
-const handleServerToggle = (enable: boolean) => {
-  try {
-    if (enable) {
-      // 启动服务：仅当实例不存在时创建
-      if (!serverInstance) {
-        serverInstance = new NetworkServer(); // 初始化服务实例
-        serverInstance.start(); // 启动服务
-        win?.webContents.send('server:status', { running: true }); // 通知前端
-      }
-    } else {
-      // 关闭服务：仅当实例存在时销毁
-      if (serverInstance) {
-        serverInstance.stop(); // 停止服务
-        serverInstance = null; // 清空实例
-        win?.webContents.send('server:status', { running: false }); // 通知前端
-      }
-    }
-  } catch (err) {
-    // 捕获启动/关闭过程中的错误，反馈给前端
-    const errorMsg = err instanceof Error ? err.message : '服务操作失败';
-    win?.webContents.send('server:status', { running: false, error: errorMsg });
-  }
-};
-
 
 // 监听所有窗口关闭事件：
 // 在非macOS系统（如Windows、Linux），所有窗口关闭后退出应用
@@ -117,81 +93,10 @@ app.on('activate', () => {
 app.whenReady().then(() => {
   // 监听前端发送的“切换server状态”指令
   ipcMain.on('server:toggle', (_, enable: boolean) => {
-    handleServerToggle(enable);
+
+    // 维护服务实例
+    serverInstance = handleServerToggle(serverInstance, win)(enable);
+    // handleServerInfoReq(serverInstance, win)()
   });
   createWindow()
 })
-
-
-
-/*import { app, BrowserWindow } from 'electron'
-import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
-
-// @ts-expect-error
-const require = createRequire(import.meta.url)
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-// The built directory structure
-//
-// ├─┬─┬ dist
-// │ │ └── index.html
-// │ │
-// │ ├─┬ dist-electron
-// │ │ ├── main.js
-// │ │ └── preload.mjs
-// │
-process.env.APP_ROOT = path.join(__dirname, '..')
-
-// 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
-export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
-export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
-
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
-
-let win: BrowserWindow | null
-
-function createWindow() {
-  win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
-    },
-  })
-
-  // Test active push message to Renderer-process.
-  win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', (new Date).toLocaleString())
-  })
-
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL)
-  } else {
-    // win.loadFile('dist/index.html')
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'))
-  }
-}
-
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-    win = null
-  }
-})
-
-app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
-  }
-})
-
-app.whenReady().then(createWindow)
-*/
-

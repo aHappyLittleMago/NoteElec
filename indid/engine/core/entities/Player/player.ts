@@ -39,7 +39,7 @@ class Player {
 /**
  * Player状态TS声明
  */
-type PalyerStateType = {
+type PlayerStateType = {
     // 必须属性
     id: string;
     name: string;
@@ -52,4 +52,4 @@ type PalyerStateType = {
 }
 
 export { Player };
-export type {PalyerStateType};
+export type {PlayerStateType};
