@@ -16,7 +16,10 @@ const Demo = (props: { client: any }) => {
   const rendererRef = useRef<Renderer | null>(null); // 渲染实例容器
   const inputRef = useRef<Input | null>(null); // IO实例容器
   const entityPoolRef = useRef<EntityPool<Player> | null>(null); // 实体池实例容器
-  const playerRef = useRef<PlayerStateType | null>(null); // 实体实例容器
+  const playerRef = useRef<Player | null>(null); // 修正类型：改为Player实例（非PlayerStateType）
+  // 存储回调移除函数，用于组件卸载时清理
+  const removeUpdateCallbackRef = useRef<(() => void) | null>(null);
+  const removeRenderCallbackRef = useRef<(() => void) | null>(null);
 
   // 结构出客户端实例
   const { client } = props;
@@ -41,80 +44,75 @@ const Demo = (props: { client: any }) => {
       id: client?.current?.id,
       // 从renderer的尺寸对象中获取宽高（width和height属性）
       location: [
-        // x坐标：(画布宽度 - 玩家宽度) / 2
-        (rendererRef.current.getSize().width - 1) / 2,
-        // y坐标：(画布高度 - 玩家高度) / 2
-        (rendererRef.current.getSize().height - 1) / 2
+        // x坐标：(画布宽度 - 玩家宽度) / 2（玩家宽度50）
+        (rendererRef.current!.getSize().width - 50) / 2,
+        // y坐标：(画布高度 - 玩家高度) / 2（玩家高度50）
+        (rendererRef.current!.getSize().height - 50) / 2
       ],
-      size: [50, 50]
+      size: [50, 50] // 玩家尺寸：高50，宽50
     });
 
-    // 注册更新逻辑
-    gameLoopRef.current.onUpdate((deltaTime) => {
-      // 实例校验
-      const renderer = rendererRef.current;
-      const input = inputRef.current;
-      const player = playerRef.current;
-      if (!renderer || !input || !player) return;
+    // ------------ 核心修改1：替换回调注册方式（addXXXCallback）------------
+    // 注册更新逻辑（存储移除函数，用于卸载时清理）
+    if (gameLoopRef.current) {
+      removeUpdateCallbackRef.current = gameLoopRef.current.addUpdateCallback((deltaTime) => {
+        // 实例校验
+        const renderer = rendererRef.current;
+        const input = inputRef.current;
+        const player = playerRef.current;
+        if (!renderer || !input || !player) return;
 
-      // 获取画布尺寸
-      const { width: canvasWidth, height: canvasHeight } = renderer.getSize();
+        // 获取画布尺寸
+        const { width: canvasWidth, height: canvasHeight } = renderer.getSize();
 
-      // 移动逻辑
-      // 移动逻辑（基于新Player类调整）
-      if (player) { // 先判断玩家实例是否存在，避免空引用错误
-        // 获取当前位置和尺寸（使用类提供的getter方法）
+        // 移动逻辑
         let currentX = player.getX();
         let currentY = player.getY();
-        const playerW = player.getW(); // 宽度
-        const playerH = player.getH(); // 高度
+        const playerW = player.getW(); // 宽度50
+        const playerH = player.getH(); // 高度50
 
         // 根据按键计算新位置
-        if (input.isPressed('ArrowUp')) {
-          currentY -= player.speed * deltaTime;
-        }
-        if (input.isPressed('ArrowDown')) {
-          currentY += player.speed * deltaTime;
-        }
-        if (input.isPressed('ArrowLeft')) {
-          currentX -= player.speed * deltaTime;
-        }
-        if (input.isPressed('ArrowRight')) {
-          currentX += player.speed * deltaTime;
-        }
+        if (input.isPressed('ArrowUp')) currentY -= player.speed * deltaTime;
+        if (input.isPressed('ArrowDown')) currentY += player.speed * deltaTime;
+        if (input.isPressed('ArrowLeft')) currentX -= player.speed * deltaTime;
+        if (input.isPressed('ArrowRight')) currentX += player.speed * deltaTime;
 
         // 边界限制（确保玩家不会超出画布范围）
         const limitedX = Math.max(0, Math.min(canvasWidth - playerW, currentX));
         const limitedY = Math.max(0, Math.min(canvasHeight - playerH, currentY));
 
-        // 使用类提供的setter方法设置新位置（确保状态修改符合类的设计规范）
+        // 设置新位置
         player.setLocation(limitedX, limitedY);
-      }
 
-      client.current?.sendPlayerState(player);
+        // 修复id重复问题：确保用client.id作为最终id
+        client.current?.sendPlayerState({ ...player, id: client.current.id });
+      });
+    }
 
-    });
+    // 注册渲染逻辑（存储移除函数，用于卸载时清理）
+    if (gameLoopRef.current) {
+      removeRenderCallbackRef.current = gameLoopRef.current.addRenderCallback(() => {
+        const renderer = rendererRef.current;
+        const player = playerRef.current;
+        if (!renderer || !player) return;
 
-    // 5. 注册渲染逻辑
-    gameLoopRef.current.onRender(() => {
-      const renderer = rendererRef.current;
-      const player = playerRef.current;
-      if (!renderer || !player) return;
-
-      renderer.clear('#24E063'); // 清屏
-      renderer.drawEntity(player); // 绘制实例
-    });
+        renderer.clear('#24E063'); // 清屏
+        renderer.drawEntity(player); // 绘制实例
+      });
+    }
 
     // 启动循环
-    gameLoopRef.current.start();
+    gameLoopRef.current?.start();
 
-    // 组件卸载时停止循环
+    // ------------ 核心修改2：组件卸载时清理回调+停止循环 ------------
     return () => {
-      if (gameLoopRef.current) {
-        gameLoopRef.current.stop();
-      }
+      // 移除注册的回调（避免内存泄漏）
+      removeUpdateCallbackRef.current?.();
+      removeRenderCallbackRef.current?.();
+      // 停止游戏循环
+      gameLoopRef.current?.stop();
     };
-  }, []);
+  }, [client]); // 依赖项添加client，确保client更新时重新初始化
 
   // 返回Canvas元素
   return (
@@ -124,8 +122,8 @@ const Demo = (props: { client: any }) => {
         width="800"
         height="600"
         style={{ border: '1px solid #000' }}
-      /></>
-
+      />
+    </>
   );
 };
 
