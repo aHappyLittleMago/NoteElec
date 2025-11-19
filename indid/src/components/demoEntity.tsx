@@ -72,10 +72,10 @@ const Demo = (props: { client: any }) => {
         const playerH = player.getH(); // 高度50
 
         // 根据按键计算新位置
-        if (input.isPressed('ArrowUp')) currentY -= player.speed * deltaTime;
-        if (input.isPressed('ArrowDown')) currentY += player.speed * deltaTime;
-        if (input.isPressed('ArrowLeft')) currentX -= player.speed * deltaTime;
-        if (input.isPressed('ArrowRight')) currentX += player.speed * deltaTime;
+        if (input.isKeyPressed('ArrowUp')) currentY -= player.speed * deltaTime;
+        if (input.isKeyPressed('ArrowDown')) currentY += player.speed * deltaTime;
+        if (input.isKeyPressed('ArrowLeft')) currentX -= player.speed * deltaTime;
+        if (input.isKeyPressed('ArrowRight')) currentX += player.speed * deltaTime;
 
         // 边界限制（确保玩家不会超出画布范围）
         const limitedX = Math.max(0, Math.min(canvasWidth - playerW, currentX));

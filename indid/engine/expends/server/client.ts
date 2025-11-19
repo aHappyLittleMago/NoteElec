@@ -1,7 +1,7 @@
 // network/NetworkClient.ts
 import io, { Socket } from "socket.io-client";
 import type {NetworkClientEvents} from "./interface.ts";
-import type { PlayerStateType } from "../../core/entities/Player/player.ts";
+import type { PlayerStateType } from "../../core/entities/Player/player.type.ts";
 
 class NetworkClient {
   // 私有成员

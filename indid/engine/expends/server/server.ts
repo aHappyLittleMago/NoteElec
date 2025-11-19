@@ -1,6 +1,6 @@
 // network/NetworkServer.ts
 import { Server, Socket } from "socket.io";
-import type { PlayerStateType } from "../../core/entities/Player/player";
+import type { PlayerStateType } from "../../core/entities/Player/player.type";
 import { Player } from "../../core/entities/Player/player";
 
 
