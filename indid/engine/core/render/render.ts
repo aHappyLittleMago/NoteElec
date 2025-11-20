@@ -105,11 +105,11 @@ class Renderer {
       return;
     }
 
-    // 解析实体属性（兼容旧版PlayerStateType）
+    // 解析实体属性
     const {
       location: [x, y],
       size: [w, h],
-      background = entity.color || '#ff0000', // 兼容旧版color属性
+      background =  '#ff0000', // 兼容旧版color属性
       opacity = 1,
       rotation = 0,
       border,
