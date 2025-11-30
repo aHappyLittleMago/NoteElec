@@ -24,7 +24,7 @@ class Player {
     [key: string]: any;
 
     /**
-     * 构造函数 - 初始化实体属性，对所有属性进行严格类型校验
+     * 构造函数 
      * @param params 自定义实体属性（可选）
      * @throws {TypeError} 当参数类型不符合要求时抛出错误
      */
@@ -59,7 +59,7 @@ class Player {
             }
         });
 
-        // 处理动态扩展属性（排除已校验的关键属性）
+        // 附加额外自定义属性
         const processedKeys = new Set(Object.keys(validators));
         for (const key in params) {
             if (params.hasOwnProperty(key) && !processedKeys.has(key)) {
@@ -89,7 +89,7 @@ class Player {
         return `Invalid type for ${key}: ${errorMap[key] || 'unknown error'}`;
     }
 
-    // --- 位置相关操作方法（保留原逻辑，无修改）---
+    // --- 位置相关操作方法
     getX(): number {
         return this.location[0];
     }
@@ -133,7 +133,7 @@ class Player {
         }
     }
 
-    // --- 尺寸相关操作方法（核心修改：适配[w, h]顺序）---
+    // --- 尺寸相关操作方法 ---
     /** 获取实体宽度（对应size[0]） */
     getW(): number {
         return this.size[0];
