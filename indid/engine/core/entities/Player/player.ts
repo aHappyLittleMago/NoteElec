@@ -8,6 +8,7 @@ class Player {
     public id: string = "-1"; // 实体唯一标识
     public location: [x: number, y: number] = [0, 0]; // 位置坐标 [x, y]
     public size: [w: number, h: number] = [1, 1]; // 尺寸 [宽, 高]（修正原[h,w]顺序）
+    public update: (deltaTime: number) => void = () => { }; // 更新函数
 
     // --- 渲染扩展属性（可选，带默认值）---
     public background?: string = 'gray'; // 背景色（CSS格式，默认灰色）
@@ -33,14 +34,15 @@ class Player {
         const validators = {
             id: (v: any) => typeof v === 'string',
             name: (v: any) => typeof v === 'string',
-            location: (v: any) => Array.isArray(v) && v.length === 2 && 
+            location: (v: any) => Array.isArray(v) && v.length === 2 &&
                 typeof v[0] === 'number' && typeof v[1] === 'number',
-            size: (v: any) => Array.isArray(v) && v.length === 2 && 
+            size: (v: any) => Array.isArray(v) && v.length === 2 &&
                 typeof v[0] === 'number' && typeof v[1] === 'number',
+            update: (v: any) => typeof v === 'function',
             background: (v: any) => typeof v === 'string' || v === undefined,
             opacity: (v: any) => (typeof v === 'number' && v >= 0 && v <= 1) || v === undefined, // 限制0-1
             rotation: (v: any) => typeof v === 'number' || v === undefined,
-            border: (v: any) => (v === undefined) || (typeof v === 'object' && v !== null && 
+            border: (v: any) => (v === undefined) || (typeof v === 'object' && v !== null &&
                 typeof v.width === 'number' && typeof v.color === 'string'),
             shape: (v: any) => v === 'rect' || v === 'circle' || v === undefined,
             imageSrc: (v: any) => typeof v === 'string' || v === undefined
@@ -52,10 +54,13 @@ class Player {
                 if (!validators[key](params[key])) {
                     throw new TypeError(this.getValidationErrorMsg(key));
                 }
-                // @ts-expect-error
-                // 忽略此错误
-                
-                this[key] = params[key];
+                // 绑定 this 到 Player 实例（仅针对 update 方法）
+                if (key === 'update') {
+                    this.update = params.update!.bind(this);
+                } else {
+                    // @ts-expect-error
+                    this[key] = params[key];
+                }
             }
         });
 

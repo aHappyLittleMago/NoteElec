@@ -1,157 +1,137 @@
 /**
  * 示例demo
- * 方向键控制矩形移动
- * 符合实体池最佳实践：Player实例由实体池统一托管、查询、管理
+ * 方向键控制矩形移动（仅用Scene模块，轻量版）
+ * 核心：复用Scene的实体托管、自动循环绑定，移除冗余SceneManager
  */
 import { useEffect, useRef } from 'react';
 import { Input } from "../../engine/core/io/io";
 import { GameLoop } from "../../engine/core/loop/loop";
 import { Renderer } from "../../engine/core/render/render";
-import { EntityPool } from '../../engine/core/entities/pool/entitiesPool';
+import { Scene } from '../../engine/core/scene/scene'; // 仅导入Scene
 import { Player } from '../../engine/core/entities/Player/player';
 
 const Demo = (props: { client: any }) => {
-  // 创建实例容器
+  // 核心实例容器（仅保留必要模块，轻量管理）
   const gameLoopRef = useRef<GameLoop | null>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const inputRef = useRef<Input | null>(null);
-  const entityPoolRef = useRef<EntityPool | null>(null);
-  // 存储玩家ID（替代原playerRef，仅保留ID用于从实体池查询）
+  const sceneRef = useRef<Scene | null>(null); // 直接存储Scene实例
   const playerIdRef = useRef<string | null>(null);
-  // 存储回调移除函数
-  const removeUpdateCallbackRef = useRef<(() => void) | null>(null);
-  const removeRenderCallbackRef = useRef<(() => void) | null>(null);
 
   const { client } = props;
 
   useEffect(() => {
-    // ========== 核心校验：确保client和玩家ID存在 ==========
+    // ========== 1. 前置校验与初始化准备 ==========
+    playerIdRef.current = client?.current?.id || "-1";
     if (!client?.current?.id) {
-      console.warn("客户端实例或玩家ID未初始化");
-      playerIdRef.current = "-1";
-    } else {
-      const playerId = client.current.id;
-      playerIdRef.current = playerId;
+      console.warn("客户端实例或玩家ID未初始化，使用默认ID：-1");
     }
 
-
-    // ========== 初始化核心引擎实例 ==========
+    // ========== 2. 创建全局核心基础设施（轻量初始化） ==========
     inputRef.current = new Input();
     rendererRef.current = new Renderer('gameCanvas');
     gameLoopRef.current = new GameLoop();
 
-    // ========== 初始化实体池（添加生命周期钩子，便于调试） ==========
-    entityPoolRef.current = new EntityPool({
-      onAdd: (entity) => console.log(`[实体池] 玩家${entity.id}已托管`),
-      onRemove: (entity) => console.log(`[实体池] 玩家${entity.id}已取消托管`),
-      onClear: () => console.log(`[实体池] 已清空所有托管实体`)
-    });
-
-    const renderer = rendererRef.current;
-    const canvasSize = renderer.getSize();
-
-    // ========== 创建Player实例并添加到实体池（核心：托管） ==========
-    const player = new Player({
-      speed: 200,
-      id: playerIdRef.current, // 用客户端ID作为玩家唯一标识
-      location: [
-        (canvasSize.width - 50) / 2, // 画布水平居中
-        (canvasSize.height - 50) / 2 // 画布垂直居中
-      ],
-      size: [50, 50], // 宽50，高50
-      shape: "rect" // 显式指定形状为矩形（匹配渲染逻辑）
-    });
-    // 将Player实例添加到实体池，完成托管
-    entityPoolRef.current.add(player);
-
-    // ========== 注册游戏循环更新回调（从实体池获取Player） ==========
     const gameLoop = gameLoopRef.current;
-    if (gameLoop) {
-      removeUpdateCallbackRef.current = gameLoop.addUpdateCallback((deltaTime) => {
-        // 前置校验：核心实例是否存在
-        const currentRenderer = rendererRef.current;
-        const currentInput = inputRef.current;
-        const currentEntityPool = entityPoolRef.current;
-        if (!currentRenderer || !currentInput || !currentEntityPool || !playerIdRef.current) return;
+    const renderer = rendererRef.current;
+    const input = inputRef.current;
+    const playerId = playerIdRef.current;
 
-        // ========== 从实体池获取托管的Player实例（核心） ==========
-        const player = currentEntityPool.get(playerIdRef.current);
-        if (!player) {
-          console.warn(`[更新逻辑] 未从实体池找到玩家${playerIdRef.current}`);
-          return;
-        }
-
-        // 获取画布尺寸
-        const { width: canvasWidth, height: canvasHeight } = currentRenderer.getSize();
-        // 玩家尺寸
-        const playerW = player.getW();
-        const playerH = player.getH();
-        // 当前坐标
-        let currentX = player.getX();
-        let currentY = player.getY();
-
-        // 方向键移动逻辑
-        if (currentInput.isKeyPressed('ArrowUp')) currentY -= player.speed * deltaTime;
-        if (currentInput.isKeyPressed('ArrowDown')) currentY += player.speed * deltaTime;
-        if (currentInput.isKeyPressed('ArrowLeft')) currentX -= player.speed * deltaTime;
-        if (currentInput.isKeyPressed('ArrowRight')) currentX += player.speed * deltaTime;
-
-        // 边界限制：防止玩家超出画布
-        const limitedX = Math.max(0, Math.min(canvasWidth - playerW, currentX));
-        const limitedY = Math.max(0, Math.min(canvasHeight - playerH, currentY));
-
-        // 通过Player自身方法更新坐标（符合实体池纯托管原则）
-        player.setLocation(limitedX, limitedY);
-
-        // 发送玩家状态到服务端(仅当连接有效时)
-        client.current&&client.current.sendPlayerState({ ...player, id: playerIdRef.current });
-      });
+    if (!gameLoop || !renderer || !input) {
+      console.error("核心模块初始化失败，终止Demo启动");
+      return;
     }
 
-    // ========== 注册游戏循环渲染回调（从实体池获取Player） ==========
-    if (gameLoop) {
-      removeRenderCallbackRef.current = gameLoop.addRenderCallback(() => {
-        const currentRenderer = rendererRef.current;
-        const currentEntityPool = entityPoolRef.current;
-        if (!currentRenderer || !currentEntityPool || !playerIdRef.current) return;
+    // ========== 3. 创建并初始化Scene实例（核心步骤） ==========
+    const gameScene = new Scene(
+      {
+        id: "gameDemoScene", // 场景ID（仅用于标识，无需注册）
+        gameLoop, // 传入游戏循环，自动绑定回调
+        renderer, // 传入渲染器，自动调度渲染
+        background: "#24E063" // 场景背景色（自动清屏）
+      },
+      {
+        // 场景激活时：创建Player并添加到场景（实体托管）
+        onActivate: (scene) => {
+          const canvasSize = renderer.getSize();
+          // 创建Player，update方法封装移动逻辑
+          const player = new Player({
+            id: playerId,
+            speed: 200,
+            location: [
+              (canvasSize.width - 50) / 2, // 水平居中
+              (canvasSize.height - 50) / 2 // 垂直居中
+            ],
+            size: [50, 50],
+            shape: "rect",
+            background: "#1E293B",
+            border: { width: 2, color: "#fff" },
+            // 核心：Player.update封装移动行为
+            update: function (deltaTime:number) {
+              const canvasSize = renderer.getSize();
+              const [playerW, playerH] = this.getSize();
+              let [currentX, currentY] = this.getLocation();
 
-        // 从实体池获取Player实例
-        const player = currentEntityPool.get(playerIdRef.current);
-        if (!player) {
-          console.warn(`[渲染逻辑] 未从实体池找到玩家${playerIdRef.current}`);
-          return;
+              // 方向键控制逻辑（通过Input模块获取按键状态）
+              if (input.isKeyPressed('ArrowUp')) currentY -= this.speed * deltaTime;
+              if (input.isKeyPressed('ArrowDown')) currentY += this.speed * deltaTime;
+              if (input.isKeyPressed('ArrowLeft')) currentX -= this.speed * deltaTime;
+              if (input.isKeyPressed('ArrowRight')) currentX += this.speed * deltaTime;
+
+              // 边界限制：不超出画布范围
+              currentX = Math.max(0, Math.min(canvasSize.width - playerW, currentX));
+              currentY = Math.max(0, Math.min(canvasSize.height - playerH, currentY));
+
+              // 安全更新位置（调用Player的set方法，带类型校验）
+              this.setLocation(currentX, currentY);
+            }
+          });
+
+          // 场景托管Player（内部实体池自动管理）
+          scene.addEntity(player);
+          console.log(`[Demo] 玩家${playerId}已添加到场景，可通过方向键控制`);
+        },
+
+        // 帧更新后：同步玩家状态到服务端（场景级逻辑分离）
+        onUpdate: (scene) => {
+          const player = scene.getEntity(playerId as string);
+          if (player && client.current) {
+            // 仅同步核心状态数据（避免传递完整实例）
+            client.current.sendPlayerState({
+              id: player.id,
+              location: player.getLocation(),
+              size: player.getSize(),
+              timestamp: Date.now()
+            });
+          }
         }
+      }
+    );
 
-        // 清屏并绘制玩家
-        currentRenderer.clear('#24E063');
-        currentRenderer.drawEntity(player);
-      });
-    }
+    // 存储场景实例，用于后续清理
+    sceneRef.current = gameScene;
 
-    // 启动游戏循环
-    gameLoop.start();
+    // ========== 4. 激活场景 + 启动游戏循环（简化流程） ==========
+    gameScene.activate(); // 激活场景：自动绑定Loop的update/render回调
+    gameLoop.start(); // 启动循环，触发帧更新和渲染
 
-    // ========== 组件卸载时的清理逻辑（符合实体池最佳实践） ==========
+    // ========== 5. 组件卸载时：清理资源（Scene自动处理） ==========
     return () => {
-      // 移除循环回调，避免内存泄漏
-      removeUpdateCallbackRef.current?.();
-      removeRenderCallbackRef.current?.();
       // 停止游戏循环
-      gameLoopRef.current?.stop();
-      // 清空实体池（取消所有实体托管，触发onClear钩子）
-      entityPoolRef.current?.clear();
-      // 若实体池提供destroy方法，可调用彻底销毁（新版实体池新增）
-      // entityPoolRef.current?.destroy();
-      // 重置ref
+      gameLoop.stop();
+      // 销毁场景：自动解绑Loop回调、清空实体池、释放资源
+      sceneRef.current?.destroy();
+      // 重置引用，避免内存泄漏
       playerIdRef.current = null;
       inputRef.current = null;
       rendererRef.current = null;
-      entityPoolRef.current = null;
       gameLoopRef.current = null;
+      sceneRef.current = null;
+      console.log("[Demo] 组件卸载，所有资源已清理");
     };
-  }, [client]); // 依赖client，确保client更新时重新初始化
+  }, [client]);
 
-  // 渲染Canvas
+  // 渲染Canvas（保持原UI结构）
   return (
     <>
       <canvas

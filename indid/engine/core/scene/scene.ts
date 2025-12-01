@@ -5,7 +5,7 @@ import { Player } from "../entities/Player/player";
 
 // 场景配置类型（仅依赖现有模块）
 export type SceneConfig = {
-  id: string; // 场景唯一标识（如 "level1"、"menu"）
+  id: string; // 场景唯一标识
   gameLoop: GameLoop; // 游戏循环实例（外部传入，避免场景内部创建）
   renderer: Renderer; // 渲染实例（外部传入，共享画布）
   background?: string; // 场景背景色（默认 #24E063）
@@ -28,17 +28,22 @@ export type SceneHooks = {
  * 4. 最小化耦合，预留扩展接口
  */
 export class Scene {
-  public readonly id: string;
+  public readonly id: string; // 场景实例id
   public readonly entityPool: EntityPool; // 场景专属实体池（隔离不同场景实体）
-  public readonly gameLoop: GameLoop;
-  public readonly renderer: Renderer;
-  public readonly background: string;
-  private readonly hooks: SceneHooks;
+  public readonly gameLoop: GameLoop; // 游戏循环实例
+  public readonly renderer: Renderer; // 渲染实例
+  public readonly background: string; // 背景色
+  private readonly hooks: SceneHooks; // 场景生命周期钩子
   private isActive = false; // 场景是否激活
   // 存储GameLoop回调的移除函数（用于销毁时清理）
   private removeUpdateCallback?: () => void;
   private removeRenderCallback?: () => void;
 
+  /**
+   * 构造函数，场景实例初始化时自动创建实体池
+   * @param config 初始化参数
+   * @param hooks 初始化钩子
+   */
   constructor(config: SceneConfig, hooks: SceneHooks = {}) {
     this.id = config.id;
     this.gameLoop = config.gameLoop;
