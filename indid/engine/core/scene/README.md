@@ -70,10 +70,10 @@
 以下是场景模块的完整使用流程，包含依赖初始化、场景创建、切换、启动循环等核心步骤：
 
 ### 1. 前置准备：补充Player模块的update方法
-场景的更新调度依赖实体的`update`方法，需在`Player`类中实现：
+场景的更新调度依赖实体的`update`方法，需在初始化实体实例时实现：
 ```typescript
-// Player.ts
-export class Player {
+
+const demoPlayer = new Player({
   id: string;
   location: [number, number]; // 实体位置（世界坐标）
   speed: number; // 移动速度（像素/秒）
@@ -96,7 +96,7 @@ export class Player {
     // 示例：水平移动（可替换为输入控制、AI逻辑等）
     this.location[0] += this.speed * deltaTime;
   }
-}
+})
 ```
 
 ### 2. 核心步骤：初始化与使用场景

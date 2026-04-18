@@ -7,18 +7,18 @@ import { useEffect, useRef } from 'react';
 import { Input } from "../../engine/core/io/io";
 import { GameLoop } from "../../engine/core/loop/loop";
 import { Renderer } from "../../engine/core/render/render";
-import { Scene } from '../../engine/core/scene/scene'; // 仅导入Scene
+import { Scene } from '../../engine/core/scene/scene'; 
 import { Player } from '../../engine/core/entities/Player/player';
 
 const Demo = (props: { client: any }) => {
-  // 核心实例容器（仅保留必要模块，轻量管理）
+  // 核心实例容器
   const gameLoopRef = useRef<GameLoop | null>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const inputRef = useRef<Input | null>(null);
-  const sceneRef = useRef<Scene | null>(null); // 直接存储Scene实例
+  const sceneRef = useRef<Scene | null>(null); 
   const playerIdRef = useRef<string | null>(null);
 
-  const { client } = props;
+  const { client } = props; // 获取soket实例
 
   useEffect(() => {
     // ========== 1. 前置校验与初始化准备 ==========

@@ -6,8 +6,8 @@ import { Player } from "../entities/Player/player";
 // 场景配置类型（仅依赖现有模块）
 export type SceneConfig = {
   id: string; // 场景唯一标识
-  gameLoop: GameLoop; // 游戏循环实例（外部传入，避免场景内部创建）
-  renderer: Renderer; // 渲染实例（外部传入，共享画布）
+  gameLoop?: GameLoop; // 游戏循环实例（默认自动创建）
+  renderer?: Renderer; // 渲染实例（默认自动创建）
   background?: string; // 场景背景色（默认 #24E063）
 };
 
@@ -45,11 +45,11 @@ export class Scene {
    * @param hooks 初始化钩子
    */
   constructor(config: SceneConfig, hooks: SceneHooks = {}) {
-    this.id = config.id;
-    this.gameLoop = config.gameLoop;
-    this.renderer = config.renderer;
-    this.background = config.background || "#24E063";
-    this.hooks = hooks;
+    this.id = config.id; // 注册场景id
+    this.gameLoop = config.gameLoop|| new GameLoop(); // 如果为空默认创建
+    this.renderer = config.renderer || new Renderer('gameCanvas'); // 如果为空默认创建
+    this.background = config.background || "#24E063"; // 默认绿色背景
+    this.hooks = hooks; // 注册生命周期钩子
 
     // 初始化场景专属实体池（核心：实体托管隔离）
     this.entityPool = new EntityPool();
@@ -171,6 +171,22 @@ export class Scene {
 
     // 3. 执行自定义渲染逻辑（如场景UI、文字提示，现有无UI模块暂留接口）
     this.hooks.onRender?.(this);
+  }
+
+  /**
+   * 
+   * @returns 返回loop实例
+   */
+  getLoopInstance(){
+    return this.gameLoop;
+  }
+
+  /**
+   * 
+   * @returns 返回渲染实例
+   */
+  getRendererInstance(){
+    return this.renderer;
   }
 }
 
