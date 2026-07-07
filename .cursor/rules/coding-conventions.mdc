@@ -1,0 +1,58 @@
+---
+description: TypeScript/React 编码约定（继承 indid 风格）
+globs: "{indid-web,indid}/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# 编码约定
+
+匹配 `indid/` 现有代码风格，迁移后保持一致。
+
+## 引擎模块
+
+```typescript
+// ✅ 类 + 命名导出 + 中文 JSDoc
+/**
+ * 游戏循环管理器
+ */
+class GameLoop {
+  private isRunning: boolean = false;
+  start(): void { /* ... */ }
+}
+export { GameLoop };
+```
+
+## 类型
+
+```typescript
+// ✅ 类型单独文件，命名导出
+export type PlayerStateType = { id: string; location: [number, number]; /* ... */ };
+
+// ❌ 避免 any
+const Demo = (props: { scene: any }) => // 改为具体类型，如 RefObject<Scene | null>
+```
+
+## React 组件
+
+- 函数组件 + hooks（`useRef`, `useEffect`, `useState`）
+- 自定义 hooks 放 `src/hooks/`
+- 组件文件使用命名导出：`export { Demo }`
+
+## 文件组织
+
+```
+engine/core/<module>/
+├── <module>.ts       # 实现
+├── <module>.type.ts  # 类型（如有）
+└── readme.md         # 模块说明
+```
+
+## Import
+
+- 使用相对路径：`import { Scene } from '../../engine/core/scene/scene'`
+- 暂不引入 path alias
+
+## 注释语言
+
+- 模块说明、公共 API：中文
+- 变量名、类型名：英文

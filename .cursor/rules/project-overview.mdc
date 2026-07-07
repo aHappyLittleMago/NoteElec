@@ -1,0 +1,28 @@
+---
+description: NoteElec 项目概览与目录约定
+alwaysApply: true
+---
+
+# NoteElec 项目概览
+
+自研 2D Canvas 游戏引擎；**纯浏览器客户端**（`indid-web/`）为当前活跃代码库，无后端、无多人联机。
+
+## 目录
+
+- `indid/` — Legacy Electron 原型（**只读，禁止修改**）
+- `indid-web/` — Web 客户端（**所有新代码写这里**）
+- `LowcodeEditor/` — 独立项目，与本仓库引擎开发无关
+
+## 关键约束
+
+1. 不要修改 `indid/` 除非用户明确要求
+2. 不要引入 Electron 或 Socket.io 依赖到 `indid-web/`
+3. **后端已完全废弃** — 不实现 `engine/expends/server/`、`server/`、NetworkServer
+
+## 技术栈
+
+React 18 + TypeScript + Vite 5 + Canvas 2D
+
+## Agent 入口
+
+开始工作前阅读根目录 `AGENTS.md`。

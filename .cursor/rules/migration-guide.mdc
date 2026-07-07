@@ -1,0 +1,28 @@
+---
+description: indid-web 活跃代码库约束
+globs: indid-web/**/*
+alwaysApply: false
+---
+
+# indid-web 开发规则
+
+在 `indid-web/` 中工作时必须遵守以下规则。
+
+## 源与目标
+
+- `indid/` — Legacy Electron 原型（只读参考，禁止修改）
+- `indid-web/` — 当前活跃代码库（所有新代码写这里）
+
+Electron → Web 迁移已完成；以 `indid-web/` 为准进行后续开发。
+
+## 禁止事项
+
+- 修改 `indid/` 任何文件（除非用户明确要求）
+- 在 `indid-web/` 使用 `ipcRenderer` / `electronAPI` / `contextBridge`
+- 引入 Electron 或 Socket.io 依赖
+- 新建或迁移任何后端：`server/`、`NetworkServer`、`engine/expends/server/*`
+
+## 验收习惯
+
+- 变更后运行 `npm run build`（在 `indid-web/` 目录）
+- 保持 TypeScript strict，避免 `any`
