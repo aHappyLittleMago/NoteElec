@@ -5,4 +5,5 @@
 export interface PlatformAPI {
   getStorageItem(key: string): string | null;
   setStorageItem(key: string, value: string): void;
+  removeStorageItem(key: string): void;
 }

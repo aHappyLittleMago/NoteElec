@@ -9,4 +9,6 @@ export type EntityBaseParams = {
   id: string;
   location?: EntityLocation;
   size?: EntitySize;
+  /** 是否参与 Scene 碰撞检测，默认 true */
+  collidable?: boolean;
 };

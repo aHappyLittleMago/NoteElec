@@ -171,6 +171,7 @@ export class Scene {
         const aabbB = b.getAABB();
 
         if (!checkAABB(aabbA, aabbB)) continue;
+        if (!a.collidable || !b.collidable) continue;
 
         const correction = resolveAABB(aabbA, aabbB);
         const aMovable = this.isMovable(a);
@@ -192,8 +193,11 @@ export class Scene {
     }
   }
 
-  /** 判断实体是否可移动（Player 且 speed > 0） */
-  private isMovable(entity: Entity): entity is Player {
+  /** 判断实体是否可移动（Player.speed > 0 或 movable === true） */
+  private isMovable(entity: Entity): boolean {
+    if ('movable' in entity && (entity as { movable?: boolean }).movable === true) {
+      return true;
+    }
     return entity instanceof Player && (entity.speed ?? 0) > 0;
   }
 
@@ -207,13 +211,9 @@ export class Scene {
     // 1. 清屏（使用场景背景色）
     this.renderer.clear(this.background);
 
-    // 2. 遍历场景内所有实体，调用 Renderer 绘制
+    // 2. 遍历场景内所有实体，调用实体 render
     this.entityPool.forEach((entity) => {
-      if (entity instanceof Player) {
-        this.renderer.drawEntity(entity);
-      } else {
-        entity.render(this.renderer.getContext());
-      }
+      entity.render(this.renderer.getContext());
     });
 
     // 3. 执行自定义渲染逻辑（如场景UI、文字提示，现有无UI模块暂留接口）
@@ -293,5 +293,16 @@ export class SceneManager {
   /** 获取当前激活的场景 */
   getCurrentScene(): Scene | null {
     return this.currentScene;
+  }
+
+  /**
+   * 重置管理器（销毁当前场景并清空注册表，供 Demo 卸载时清理）
+   */
+  reset(): void {
+    if (this.currentScene) {
+      this.currentScene.destroy();
+      this.currentScene = null;
+    }
+    this.scenes.clear();
   }
 }

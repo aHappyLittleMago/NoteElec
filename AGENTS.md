@@ -8,7 +8,7 @@
 
 NoteElec 是一个 **自研 2D Canvas 游戏引擎** 项目。Electron → 纯 Web 迁移 **已完成**；活跃代码库为 `indid-web/`。
 
-- **引擎能力：** 游戏循环、Canvas 2D 渲染、输入处理、场景管理、实体池、碰撞、配置、Player / Entity 基类
+- **引擎能力：** 游戏循环、Canvas 2D 渲染、输入处理、场景管理、实体池、碰撞、配置、Player / Entity 基类、**AssetLoader**、**Sprite / Animation**、**drawText**、**AudioManager**、**SaveManager**
 - **应用形态：** React 18 + TypeScript + Vite，**纯浏览器客户端**
 - **网络：** Legacy `indid/` 中的 Socket.io、服务端与多人同步 **已废弃**，Web 版本不实现后端或联机
 
@@ -41,6 +41,26 @@ Electron 桌面应用原型，仅作历史与对照参考。
 纯 Web 客户端，目录与说明见 [`indid-web/README.md`](./indid-web/README.md)。
 
 **不含** `server/`、Socket.io 或任何网络同步层。
+
+### 引擎模块（`indid-web/engine/core/`）
+
+| 模块 | 路径 | 说明 |
+|------|------|------|
+| AssetLoader | `assets/` | 图片预加载与缓存 |
+| Sprite / Animation | `sprite/` | 精灵图绘制与帧动画 |
+| Renderer | `render/` | Canvas 绘制，含 `drawText` |
+| AudioManager | `audio/` | SFX / BGM 轻量封装 |
+| SaveManager | `save/` | localStorage JSON 存档 |
+| GameLoop | `loop/` | 游戏循环 |
+| Input | `io/` | 键盘输入 |
+| Scene | `scene/` | 场景与实体托管 |
+| Entity / Player | `entities/` | 实体基类与玩家 |
+| Collision | `collision/` | AABB 碰撞 |
+| Config | `config/` | 全局配置单例 |
+
+公共导出入口：`indid-web/engine/index.ts`。React 嵌入容器：`src/components/GameCanvas.tsx`。
+
+**文档与演示：** 引擎模块索引见 [`indid-web/engine/README.md`](./indid-web/engine/README.md)（各子模块 README 链接汇总）；`npm run dev` 启动后默认运行 [`ModuleShowcase`](./indid-web/src/components/ModuleShowcase.tsx)，按模块展示简介、代码示例与可交互迷你演示（Audio 仅文档，无 live demo）。
 
 ---
 

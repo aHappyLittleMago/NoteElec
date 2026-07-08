@@ -54,8 +54,8 @@
 4. **实体校验逻辑**
    - `validateEntity` 方法校验实体的 `location` 和 `size` 是否为有效数组（长度为 2、数值为正数），无效实体直接跳过绘制并打印警告。
 
-5. **图片渲染与回退**
-   - 通过 `new Image()` 加载图片资源，`onload` 回调中执行绘制，`onerror` 回调中回退为灰色矩形绘制，并打印加载失败警告。
+5. **图片渲染与 AssetLoader**
+   - `drawImage` 优先从 `AssetLoader` 缓存读取；未预加载时显示灰色占位并后台加载。
 
 ## 基础使用示例
 ### 1. 模块导入
@@ -202,11 +202,28 @@ renderer.drawEntity(oldPlayer);
 2. **绘制状态管理**
    - 模块已通过 `save/restore` 管理上下文状态，外部无需手动调用，避免重复操作导致状态异常。
 
-3. **图片渲染的异步性**
-   - 图片实体的绘制依赖 `onload` 回调，首次加载可能存在延迟，可提前预加载图片资源。
+3. **图片渲染**
+   - 请先通过 AssetLoader 预加载；未缓存时使用占位矩形。
 
 4. **实体属性校验**
    - 实体的 `location` 和 `size` 必须为长度为 2 的数字数组，且数值为正数，否则会被跳过绘制。
 
-5. **离屏缓存的使用场景**
+5. **图片渲染与 AssetLoader**
+   - `imageSrc` 绘制优先从 `AssetLoader` 缓存读取；嵌入小游戏请先 `loadImage` 预加载。
+   - 未预加载时显示灰色占位，并在后台尝试加载。
+
+6. **drawText 文本绘制**
+   - 用于 HUD、分数等：`renderer.drawText(text, x, y, options?)`
+   - 选项：`font`、`color`、`align`、`baseline`、`maxWidth`
+
+```typescript
+renderer.drawText('得分: 100', 16, 16, {
+  font: 'bold 20px sans-serif',
+  color: '#1E293B',
+  align: 'left',
+  baseline: 'top',
+});
+```
+
+7. **离屏缓存的使用场景**
    - 离屏缓存仅适用于静态实体，动态实体（如玩家、敌人）建议直接绘制到主 Canvas，避免缓存同步开销。

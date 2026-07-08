@@ -1,4 +1,6 @@
+import { AssetLoader } from '../assets/assetLoader';
 import { PlayerStateType } from "../entities/Player/player.type";
+import type { DrawTextOptions } from './render.type';
 
 /**
  * 通用实体渲染接口（支持多种实体类型，不局限于Player）
@@ -212,7 +214,43 @@ class Renderer {
   }
 
   /**
-   * 绘制图片（内部工具方法，支持自动加载图片）
+   * 绘制文本（HUD、分数等）
+   * @param text 文本内容
+   * @param x x 坐标
+   * @param y y 坐标
+   * @param options 字体、颜色、对齐等
+   */
+  drawText(
+    text: string,
+    x: number,
+    y: number,
+    options: DrawTextOptions = {}
+  ): void {
+    const {
+      font = '16px sans-serif',
+      color = '#000000',
+      align = 'left',
+      baseline = 'top',
+      maxWidth,
+    } = options;
+
+    this.ctx.save();
+    this.ctx.font = font;
+    this.ctx.fillStyle = color;
+    this.ctx.textAlign = align;
+    this.ctx.textBaseline = baseline;
+
+    if (maxWidth !== undefined) {
+      this.ctx.fillText(text, x, y, maxWidth);
+    } else {
+      this.ctx.fillText(text, x, y);
+    }
+
+    this.ctx.restore();
+  }
+
+  /**
+   * 绘制图片（优先使用 AssetLoader 缓存）
    */
   private drawImage(
     ctx: CanvasRenderingContext2D,
@@ -222,15 +260,22 @@ class Renderer {
     w: number,
     h: number
   ): void {
-    const img = new Image();
-    img.src = src;
-    // 图片加载完成后绘制
-    img.onload = () => ctx.drawImage(img, x, y, w, h);
-    // 图片加载失败时 fallback 到矩形
-    img.onerror = () => {
-      console.warn(`图片加载失败：${src}，将使用默认矩形绘制`);
-      this.drawRect(ctx, x, y, w, h, '#cccccc'); // 灰色占位
-    };
+    const loader = AssetLoader.getInstance();
+    const img = loader.get(src);
+
+    if (img && img.complete && img.naturalWidth > 0) {
+      ctx.drawImage(img, x, y, w, h);
+      return;
+    }
+
+    // 未预加载时尝试异步加载，当前帧用占位矩形
+    if (!loader.has(src)) {
+      void loader.loadImage(src).catch(() => {
+        console.warn(`图片加载失败：${src}`);
+      });
+    }
+
+    this.drawRect(ctx, x, y, w, h, '#cccccc');
   }
 
   /**
@@ -331,4 +376,5 @@ class Renderer {
 }
 
 export { Renderer };
-export type {RenderableEntity};
+export type { RenderableEntity };
+export type { DrawTextOptions } from './render.type';

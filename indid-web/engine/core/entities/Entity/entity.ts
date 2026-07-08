@@ -9,11 +9,14 @@ abstract class Entity {
   public id: string;
   public location: EntityLocation;
   public size: EntitySize;
+  /** 是否参与 Scene 碰撞检测 */
+  public collidable: boolean;
 
   constructor(params: EntityBaseParams) {
     this.id = params.id;
     this.location = params.location ?? [0, 0];
     this.size = params.size ?? [1, 1];
+    this.collidable = params.collidable ?? true;
   }
 
   /** 帧更新逻辑 */
@@ -23,10 +26,25 @@ abstract class Entity {
   abstract render(ctx: CanvasRenderingContext2D): void;
 
   /** 获取当前位置副本 */
-  abstract getLocation(): EntityLocation;
+  getLocation(): EntityLocation {
+    return [...this.location] as EntityLocation;
+  }
+
+  /** 设置位置 */
+  setLocation(x: number, y: number): void;
+  setLocation(location: EntityLocation): void;
+  setLocation(xOrLocation: number | EntityLocation, y?: number): void {
+    if (typeof xOrLocation === 'number' && typeof y === 'number') {
+      this.location = [xOrLocation, y];
+    } else if (Array.isArray(xOrLocation) && xOrLocation.length === 2) {
+      this.location = [...xOrLocation] as EntityLocation;
+    }
+  }
 
   /** 获取当前尺寸副本 */
-  abstract getSize(): EntitySize;
+  getSize(): EntitySize {
+    return [...this.size] as EntitySize;
+  }
 
   /** 获取 AABB 碰撞体（供碰撞模块使用） */
   getAABB(): AABB {

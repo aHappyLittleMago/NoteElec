@@ -15,7 +15,7 @@
 | `GameLoop`     | 全局游戏循环实例，提供帧更新/渲染回调注册，确保整个游戏唯一“心跳”。   |
 | `Renderer`     | 全局渲染实例，负责Canvas绘制（清屏、实体绘制），共享画布资源。        |
 | `EntityPool`   | 实体池模块，场景内自动创建专属实例，实现实体的托管与隔离。            |
-| `Player`       | 实体类（当前仅支持Player，后续可扩展为Entity基类），需实现`update`方法。 |
+| `Entity` / `Player` / `SpriteEntity` | 实体基类及子类，需实现 `update` 与 `render` 方法。 |
 
 ### 核心价值
 - 低耦合：通过依赖注入（外部传入Loop/Renderer）避免模块强绑定，支持全局资源复用；
@@ -56,9 +56,14 @@
 - 游戏循环按帧调用场景`render`方法（通过注册的回调）；
 - 内部逻辑：
   1. 校验场景激活状态，未激活则跳过；
-  2. 调用Renderer的`clear`方法，使用场景背景色清屏；
-  3. 遍历场景专属实体池，调用Renderer的`drawEntity`方法绘制所有实体；
-  4. 触发`onRender`钩子，执行自定义渲染逻辑（如UI、文字提示）。
+  2. 调用 Renderer 的 `clear` 方法，使用场景背景色清屏；
+  3. 遍历场景专属实体池，调用各实体的 `render(ctx)` 方法；
+  4. 触发 `onRender` 钩子，执行自定义渲染（如 `drawText` HUD）。
+
+### 5. 碰撞检测（内置）
+- 实体 `update` 完成后，`Scene` 自动对实体对执行 AABB 碰撞检测；
+- 可移动实体（`Player.speed > 0` 或 `movable === true`）会被最小分离向量推开；
+- 详见 [`collision/readme.md`](../collision/readme.md)。
 
 ### 5. 场景切换（SceneManager）
 核心目标：通过单例管理器实现多场景的注册与切换，确保切换过程无冲突。
@@ -142,14 +147,11 @@ const level1Scene = new Scene(
       }
     },
 
-    // 帧渲染时触发：自定义渲染逻辑
+    // 帧渲染时触发：自定义渲染逻辑（HUD、文字等）
     onRender: (scene) => {
-      // 绘制场景文字提示（需Renderer支持drawText方法）
-      scene.renderer.drawText?.({
-        text: "关卡1：移动到右边界",
-        location: [20, 30],
-        color: "#ffffff",
-        fontSize: 16
+      scene.getRendererInstance().drawText('关卡1：移动到右边界', 20, 30, {
+        font: '16px sans-serif',
+        color: '#ffffff',
       });
     },
 

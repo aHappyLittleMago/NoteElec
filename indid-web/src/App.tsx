@@ -1,12 +1,12 @@
-import './App.css'
-import { Demo } from './components/demoEntity'
+import './App.css';
+import { ModuleShowcase } from './components/ModuleShowcase';
 
 function App() {
   return (
-    <>
-      <Demo />
-    </>
-  )
+    <div className="app-shell">
+      <ModuleShowcase />
+    </div>
+  );
 }
 
-export default App
+export default App;

@@ -10,7 +10,7 @@ class Config {
 
   private constructor() {
     this.config = {
-      canvas: { width: 800, height: 600 },
+      canvas: { width: 640, height: 360 },
       player: { defaultSpeed: 200, defaultSize: [50, 50] },
     };
   }

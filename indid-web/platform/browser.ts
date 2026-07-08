@@ -4,4 +4,5 @@ import type { PlatformAPI } from './types';
 export const browserPlatform: PlatformAPI = {
   getStorageItem: (key) => localStorage.getItem(key),
   setStorageItem: (key, value) => localStorage.setItem(key, value),
+  removeStorageItem: (key) => localStorage.removeItem(key),
 };
